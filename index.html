@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>Varázskártyák</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Cormorant Garamond & Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              DEFAULT: '#D4AF37',
+              deep: '#C5A059',
+              light: '#E8CFA0',
+              pale: '#F6EBD4',
+            },
+            ivory: '#FFFDFB',
+            blush: {
+              50: '#FDF2F5',
+              100: '#F9E1E8',
+              200: '#F2C9D6',
+            },
+            ink: '#4A3B3F',
+          },
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['"Montserrat"', 'system-ui', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --gold: #D4AF37;
+      --gold-deep: #C5A059;
+      --gold-light: #E8CFA0;
+      --blush-50: #FDF2F5;
+      --blush-100: #F9E1E8;
+      --blush-200: #F2C9D6;
+      --ivory: #FFFDFB;
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      font-family: 'Montserrat', sans-serif;
+      color: #4A3B3F;
+      background:
+        radial-gradient(circle at 15% 12%, rgba(249, 225, 232, 0.72) 0%, transparent 48%),
+        radial-gradient(circle at 85% 82%, rgba(232, 207, 160, 0.32) 0%, transparent 50%),
+        radial-gradient(circle at 50% 45%, rgba(255, 253, 251, 0.92) 0%, rgba(253, 242, 245, 0.96) 100%);
+      background-attachment: fixed;
+    }
+
+    /* Safe-area padding for iPhone 14 */
+    .safe-container {
+      padding-top: max(1.25rem, env(safe-area-inset-top));
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+      padding-left: max(1.1rem, env(safe-area-inset-left));
+      padding-right: max(1.1rem, env(safe-area-inset-right));
+    }
+
+    /* Ambient gold dust canvas */
+    #ambientCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Celebration sparkle burst canvas */
+    #sparkleCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 60;
+    }
+
+    /* Hairline gold frame styling */
+    .gold-border {
+      border: 1px solid rgba(197, 160, 89, 0.55);
+      box-shadow:
+        0 6px 20px rgba(197, 160, 89, 0.12),
+        0 1px 3px rgba(74, 59, 63, 0.05),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+    }
+
+    /* Locked card back aesthetic */
+    .card-back-grid {
+      background: linear-gradient(145deg, #FFFFFF 0%, #FDF2F5 55%, #F9E1E8 100%);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease;
+    }
+
+    .card-back-grid::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 1px solid rgba(212, 175, 55, 0.38);
+      border-radius: 12px;
+      pointer-events: none;
+    }
+
+    .card-tile:active {
+      transform: scale(0.96);
+    }
+
+    /* Subtle pulse on the next unlockable card */
+    @keyframes nextCardGlow {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.32), 0 8px 22px rgba(197, 160, 89, 0.18);
+      }
+      50% {
+        box-shadow: 0 0 0 6px rgba(212, 175, 55, 0), 0 8px 26px rgba(212, 175, 55, 0.32);
+      }
+    }
+
+    .next-unlockable {
+      animation: nextCardGlow 2.8s ease-in-out infinite;
+      border-color: rgba(212, 175, 55, 0.85);
+    }
+
+    /* Subtle shimmer on unlocked grid cards */
+    .unlocked-grid-card {
+      position: relative;
+      overflow: hidden;
+      background: #FFFDFB;
+    }
+
+    .unlocked-grid-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        120deg,
+        transparent 25%,
+        rgba(255, 255, 255, 0.45) 48%,
+        rgba(232, 207, 160, 0.35) 52%,
+        transparent 75%
+      );
+      transform: translateX(-140%);
+      animation: gridSheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes gridSheen {
+      0%, 65% { transform: translateX(-140%); }
+      100% { transform: translateX(140%); }
+    }
+
+    /* 3D Showcase Card Flip */
+    .scene-3d {
+      perspective: 1300px;
+    }
+
+    .card-3d-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+      cursor: pointer;
+    }
+
+    .card-3d-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 26px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    .card-face-front {
+      background: #FFFDFB;
+      border: 2px solid rgba(232, 207, 160, 0.95);
+      box-shadow:
+        0 20px 55px rgba(212, 175, 55, 0.35),
+        0 0 28px rgba(242, 201, 214, 0.45),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    }
+
+    /* Rich Metallic Gold Shimmer Sweep on Showcase Front */
+    .shimmer-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        115deg,
+        transparent 18%,
+        rgba(255, 253, 245, 0.12) 34%,
+        rgba(255, 248, 225, 0.58) 47%,
+        rgba(212, 175, 55, 0.38) 52%,
+        rgba(255, 253, 245, 0.14) 64%,
+        transparent 80%
+      );
+      background-size: 260% 260%;
+      animation: luxuryShimmer 3.6s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes luxuryShimmer {
+      0% { background-position: 130% 130%; }
+      55% { background-position: -30% -30%; }
+      100% { background-position: -30% -30%; }
+    }
+
+    /* Floating Sparkle Stars around Showcase Card */
+    .sparkle-star {
+      position: absolute;
+      pointer-events: none;
+      color: #F6EBD4;
+      filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.95));
+      animation: twinkleStar 2.6s ease-in-out infinite;
+    }
+
+    @keyframes twinkleStar {
+      0%, 100% { opacity: 0.2; transform: scale(0.65) rotate(0deg); }
+      50% { opacity: 1; transform: scale(1.2) rotate(22deg); }
+    }
+
+    /* Card Back Face (Quote Side) */
+    .card-face-back {
+      transform: rotateY(180deg);
+      background: linear-gradient(155deg, #FFFFFF 0%, #FFFDFB 45%, #FDF2F5 82%, #F9E1E8 100%);
+      border: 2px solid rgba(212, 175, 55, 0.82);
+      box-shadow:
+        0 20px 55px rgba(212, 175, 55, 0.28),
+        0 0 24px rgba(249, 225, 232, 0.45);
+    }
+
+    .card-face-back::before {
+      content: '';
+      position: absolute;
+      inset: 12px;
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      border-radius: 18px;
+      pointer-events: none;
+    }
+
+    .card-face-back::after {
+      content: '';
+      position: absolute;
+      inset: 17px;
+      border: 0.5px solid rgba(212, 175, 55, 0.28);
+      border-radius: 14px;
+      pointer-events: none;
+    }
+
+    /* Shake animation for wrong magic word */
+    @keyframes gentleShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-7px); }
+      40% { transform: translateX(7px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .animate-shake {
+      animation: gentleShake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    /* Modal transitions */
+    .modal-backdrop {
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-panel {
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
+    }
+
+    /* Gold button gradient */
+    .btn-gold {
+      background: linear-gradient(135deg, #DFBE6F 0%, #C5A059 52%, #B89042 100%);
+      box-shadow: 0 6px 18px rgba(197, 160, 89, 0.34);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    }
+
+    .btn-gold:active {
+      transform: scale(0.97);
+      box-shadow: 0 3px 10px rgba(197, 160, 89, 0.28);
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-blush-100 selection:text-ink">
+
+  <!-- Background Ambient Gold Dust Canvas -->
+  <canvas id="ambientCanvas"></canvas>
+
+  <!-- Unlock Sparkle Burst Canvas -->
+  <canvas id="sparkleCanvas"></canvas>
+
+  <!-- Main App Wrapper (Optimized for iPhone 14: 390px) -->
+  <div class="relative z-10 min-h-[100dvh] flex flex-col items-center justify-between max-w-[430px] mx-auto safe-container">
+
+    <!-- Header -->
+    <header class="w-full text-center pt-2 pb-4">
+      <div class="flex items-center justify-center gap-2.5 mb-2">
+        <span class="h-[1px] w-9 bg-gradient-to-r from-transparent to-gold-deep/70"></span>
+        <svg class="w-4 h-4 text-gold" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 1.5l2.35 7.15L21.5 11l-7.15 2.35L12 20.5l-2.35-7.15L2.5 11l7.15-2.35L12 1.5z"/>
+        </svg>
+        <span class="h-[1px] w-9 bg-gradient-to-l from-transparent to-gold-deep/70"></span>
+      </div>
+
+      <h1 class="font-serif text-[32px] leading-tight font-medium tracking-[0.06em] text-ink">
+        Varázskártyák
+      </h1>
+
+      <!-- Minimalist Progress Indicator -->
+      <div class="mt-3 inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/75 backdrop-blur-sm border border-gold-light/80 shadow-sm">
+        <span class="w-1.5 h-1.5 rounded-full bg-gold"></span>
+        <span id="progressText" class="text-[11px] font-medium tracking-[0.2em] text-gold-deep uppercase">
+          1 / 9
+        </span>
+      </div>
+    </header>
+
+    <!-- 3x3 Card Grid -->
+    <main class="w-full my-auto py-3">
+      <div id="cardGrid" class="grid grid-cols-3 gap-3 w-full">
+        <!-- Cards dynamically rendered by JS -->
+      </div>
+    </main>
+
+    <!-- Minimalist Footer with Discreet Reset Icon -->
+    <footer class="w-full flex items-center justify-center pt-5 pb-1">
+      <button
+        id="openResetBtn"
+        type="button"
+        aria-label="Újrakezdés"
+        title="Újrakezdés"
+        class="p-2.5 rounded-full text-gold-deep/55 hover:text-gold-deep hover:bg-white/60 transition-colors duration-200 focus:outline-none"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </button>
+    </footer>
+  </div>
+
+  <!-- Toast Notification (Gentle Reminders) -->
+  <div
+    id="toastContainer"
+    class="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-300 translate-y-3 w-[88%] max-w-[340px]"
+  >
+    <div class="px-5 py-3 rounded-2xl bg-white/95 backdrop-blur-md border border-gold-light shadow-[0_10px_30px_rgba(197,160,89,0.22)] text-center">
+      <p id="toastMessage" class="text-[12px] font-medium tracking-wide text-ink"></p>
+    </div>
+  </div>
+
+  <!-- Magic Word Unlock Modal -->
+  <div
+    id="unlockModal"
+    class="fixed inset-0 z-40 hidden items-center justify-center p-5 bg-[#2A1E22]/45 backdrop-blur-md modal-backdrop opacity-0"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      id="unlockModalPanel"
+      class="w-full max-w-[340px] rounded-[28px] bg-gradient-to-b from-white via-ivory to-blush-50 border border-gold-light/90 p-6 shadow-[0_24px_60px_rgba(74,59,63,0.22)] modal-panel scale-95 opacity-0 relative"
+    >
+      <!-- Close Button -->
+      <button
+        id="closeUnlockBtn"
+        type="button"
+        aria-label="Bezárás"
+        class="absolute top-4 right-4 w-9 h-9 rounded-full flex items-center justify-center text-gold-deep/70 hover:text-gold-deep hover:bg-blush-50 transition-colors"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Emblem & Roman Numeral -->
+      <div class="flex flex-col items-center text-center mt-1">
+        <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blush-50 to-gold-pale/60 border border-gold-light flex items-center justify-center mb-3 shadow-sm">
+          <svg class="w-5 h-5 text-gold-deep" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="11" width="14" height="10" rx="2.5" />
+            <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          </svg>
+        </div>
+
+        <span id="unlockCardRoman" class="font-serif text-xl tracking-[0.2em] text-gold-deep mb-1">II</span>
+        <h2 class="font-serif text-[23px] font-medium text-ink mb-5">
+          Írd be a varázsszót...
+        </h2>
+      </div>
+
+      <!-- Magic Word Form -->
+      <form id="unlockForm" class="space-y-3.5" autocomplete="off">
+        <div>
+          <input
+            id="magicWordInput"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+            placeholder="Varázsszó"
+            class="w-full px-4 py-3.5 rounded-2xl bg-white/90 border border-gold-light/90 text-center text-[15px] font-normal tracking-wide text-ink placeholder:text-ink/35 focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+          />
+          <p id="unlockError" class="min-h-[20px] mt-2 text-center text-[12px] font-medium text-[#C26D7A] opacity-0 transition-opacity duration-200">
+            Próbáld újra!
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-3.5 rounded-2xl btn-gold text-white text-[13px] font-medium tracking-[0.16em] uppercase"
+        >
+          Feloldás
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Spotlight Showcase Modal (Sparkling 3D Flippable Card) -->
+  <div
+    id="showcaseModal"
+    class="fixed inset-0 z-50 hidden flex-col items-center justify-center p-5 bg-[#20171A]/75 backdrop-blur-xl modal-backdrop opacity-0"
+    role="dialog"
+    aria-modal="true"
+  >
+    <!-- Top Close Button -->
+    <button
+      id="closeShowcaseTopBtn"
+      type="button"
+      aria-label="Bezárás"
+      class="absolute top-[max(1.25rem,env(safe-area-inset-top))] right-5 w-10 h-10 rounded-full bg-white/12 border border-gold-light/40 text-ivory flex items-center justify-center backdrop-blur-md active:scale-95 transition-transform"
+    >
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12" />
+      </svg>
+    </button>
+
+    <!-- 3D Flippable Card Wrapper -->
+    <div id="showcaseCardWrapper" class="relative w-[84vw] max-w-[340px] aspect-square scene-3d modal-panel scale-90 opacity-0">
+      <!-- Ambient Floating Sparkle Stars Around Card -->
+      <svg class="sparkle-star w-5 h-5 -top-4 -left-3" style="animation-delay: 0s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+      </svg>
+      <svg class="sparkle-star w-4 h-4 -top-5 right-6" style="animation-delay: 0.9s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+      </svg>
+      <svg class="sparkle-star w-5 h-5 -bottom-4 -right-3" style="animation-delay: 1.5s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+      </svg>
+      <svg class="sparkle-star w-3.5 h-3.5 bottom-8 -left-4" style="animation-delay: 0.45s;" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+      </svg>
+
+      <!-- 3D Inner Rotating Element -->
+      <div id="showcaseCard3D" class="card-3d-inner">
+        <!-- FRONT FACE: Pure Image + Shimmer (Zero text/hints) -->
+        <div class="card-face card-face-front">
+          <div id="showcaseFrontContent" class="w-full h-full"></div>
+          <div class="shimmer-overlay"></div>
+        </div>
+
+        <!-- BACK FACE: Unique Poetic Romantic Quote -->
+        <div class="card-face card-face-back flex flex-col items-center justify-between p-8 text-center">
+          <div class="flex flex-col items-center gap-1.5 pt-2">
+            <span id="showcaseBackRoman" class="font-serif text-lg tracking-[0.24em] text-gold-deep">I</span>
+            <svg class="w-3.5 h-3.5 text-gold/80" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+            </svg>
+          </div>
+
+          <p id="showcaseBackQuote" class="font-serif italic text-[22px] leading-[1.45] text-ink px-2">
+            <!-- Quote injected dynamically -->
+          </p>
+
+          <div class="flex items-center justify-center gap-2 pb-2">
+            <span class="h-[1px] w-7 bg-gold-light"></span>
+            <span class="w-1.5 h-1.5 rotate-45 bg-gold/75"></span>
+            <span class="h-[1px] w-7 bg-gold-light"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Minimalist Controls Below Showcase Card -->
+    <div class="mt-7 flex items-center justify-center gap-3">
+      <button
+        id="flipCardBtn"
+        type="button"
+        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/14 border border-gold-light/50 text-ivory text-[12px] font-medium tracking-[0.14em] uppercase backdrop-blur-md active:scale-95 transition-transform"
+      >
+        <svg class="w-4 h-4 text-gold-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 2l4 4-4 4" />
+          <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+          <path d="M7 22l-4-4 4-4" />
+          <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+        </svg>
+        <span>Megfordítás</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Reset Confirmation Modal (No browser confirm()) -->
+  <div
+    id="resetModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-5 bg-[#2A1E22]/45 backdrop-blur-md modal-backdrop opacity-0"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div
+      id="resetModalPanel"
+      class="w-full max-w-[320px] rounded-[26px] bg-gradient-to-b from-white via-ivory to-blush-50 border border-gold-light/90 p-6 text-center shadow-[0_24px_60px_rgba(74,59,63,0.22)] modal-panel scale-95 opacity-0"
+    >
+      <div class="w-10 h-10 mx-auto mb-3 rounded-full bg-blush-50 border border-gold-light flex items-center justify-center text-gold-deep">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </div>
+      <h3 class="font-serif text-[23px] font-medium text-ink mb-2">Újrakezdés</h3>
+      <p class="text-[12.5px] leading-relaxed text-ink/75 mb-5">
+        Biztosan visszaállítod a kártyákat? Az első kivételével minden kártya újra lezárul.
+      </p>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button
+          id="cancelResetBtn"
+          type="button"
+          class="py-3 rounded-2xl bg-white border border-gold-light/80 text-ink/80 text-[12px] font-medium tracking-[0.1em] uppercase active:scale-95 transition-transform"
+        >
+          Mégse
+        </button>
+        <button
+          id="confirmResetBtn"
+          type="button"
+          class="py-3 rounded-2xl btn-gold text-white text-[12px] font-medium tracking-[0.1em] uppercase"
+        >
+          Igen
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================================
+       KÉPLINKEK BEÁLLÍTÁSA (IDE ILLESZD BE A FELTÖLTÖTT KÉPEK LINKJEIT)
+       Minden sornál az idézőjelek közé másold be az adott kártya képének URL-jét.
+       Ha üresen hagyod, elegáns arany-rózsaszín minimalista embléma jelenik meg.
+       ========================================================================= */
+    const CARD_IMAGES = {
+      1: "https://i.postimg.cc/5jvqGfqK/IMG-4390.jpg", // 1. Kávéház
+      2: "https://i.postimg.cc/Wtr6Kswv/IMG-4394.jpg", // 2. Virág
+      3: "https://i.postimg.cc/146cTyrh/IMG-4391.jpg", // 3. Ugráló vár
+      4: "https://i.postimg.cc/K4LrVmDh/IMG-4395.jpg", // 4. Ragasztós stickerek
+      5: "https://i.postimg.cc/xqHy793j/IMG-4399.jpg", // 5. Mozi
+      6: "https://i.postimg.cc/Hj54KT9T/IMG-4397.jpg", // 6. Sütögetés
+      7: "https://i.postimg.cc/s1S9834j/IMG-4398.jpg", // 7. Festő készlet
+      8: "https://i.postimg.cc/nM7Y5nGt/IMG-4396.jpg", // 8. Kis asztal
+      9: ""  // 9. Siker kártya
+    };
+
+    /* =========================================================================
+       KÁRTYAADATOK, SORREND, VARÁZSSZAVAK ÉS EGYEDI HÁTOLDALI IDÉZETEK
+       ========================================================================= */
+    const CARDS_DATA = [
+      {
+        id: 1,
+        roman: "I",
+        unlockWord: null, // Alapértelmezetten feloldva
+        quote: "„Minden nagy történet egyetlen csendes pillanattal kezdődik, amikor két tekintet egymásra talál.”"
+      },
+      {
+        id: 2,
+        roman: "II",
+        unlockWord: "cukrászda",
+        quote: "„A legszebb ajándék, amit egymásnak adhatunk, az őszinte figyelem és a közös nevetés.”"
+      },
+      {
+        id: 3,
+        roman: "III",
+        unlockWord: "virág",
+        quote: "„Melletted a leghétköznapibb pillanat is könnyed, szabad és végtelenül boldog.”"
+      },
+      {
+        id: 4,
+        roman: "IV",
+        unlockWord: "trambulin",
+        quote: "„Az apró emlékekből szőjük össze a legszebb közös történetünket, napról napra.”"
+      },
+      {
+        id: 5,
+        roman: "V",
+        unlockWord: "sticker",
+        quote: "„Veled még a csendnek is melegsége van, mert elég, hogy egyszerűen csak egymás mellett vagyunk.”"
+      },
+      {
+        id: 6,
+        roman: "VI",
+        unlockWord: "mozi",
+        quote: "„Az igazi varázs abban rejlik, amikor két ember együtt alkot valami maradandót a szívében.”"
+      },
+      {
+        id: 7,
+        roman: "VII",
+        unlockWord: "pizza",
+        quote: "„Te viszel fényt és melegséget a napjaimba, még akkor is, amikor kint borús az ég.”"
+      },
+      {
+        id: 8,
+        roman: "VIII",
+        unlockWord: "marker",
+        quote: "„Minden közös óra egy újabb ok arra, hogy hálás legyek, amiért az életem része vagy.”"
+      },
+      {
+        id: 9,
+        roman: "IX",
+        unlockWord: "asztal",
+        isSuccess: true,
+        quote: "„Gratulálok! Minden titkot megfejtettél – de a legszebb közös kalandunk még csak most kezdődik.”"
+      }
+    ];
+
+    const STORAGE_KEY = "varazskartyak_unlocked_v1";
+
+    /* =========================================================================
+       ÁLLAPOTKEZELÉS (STATE & LOCALSTORAGE)
+       ========================================================================= */
+    let unlockedIds = loadProgress();
+    let pendingUnlockCardId = null;
+    let toastTimer = null;
+
+    function loadProgress() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.includes(1)) {
+            return [...new Set(parsed.filter(id => id >= 1 && id <= 9))].sort((a, b) => a - b);
+          }
+        }
+      } catch (e) {
+        console.warn("Haladás betöltése sikertelen:", e);
+      }
+      return [1];
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(unlockedIds));
+      } catch (e) {
+        console.warn("Haladás mentése sikertelen:", e);
+      }
+    }
+
+    function getNextUnlockableId() {
+      for (let i = 1; i <= 9; i++) {
+        if (!unlockedIds.includes(i)) return i;
+      }
+      return null;
+    }
+
+    /**
+     * Ékezet- és kis/nagybetű-független normalizálás a varázsszavakhoz
+     */
+    function normalizeWord(str) {
+      return String(str || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    /* =========================================================================
+       MINIMALISTA ARANY-RÓZSASZÍN VEKTOROS EMBLÉMA (FALLBACK, HA ÜRES A KÉPLINK)
+       ========================================================================= */
+    function createFallbackEmblem(card, isLarge = false) {
+      const isSuccess = Boolean(card.isSuccess);
+      const romanSize = isLarge ? "text-[42px]" : "text-[18px]";
+      const iconSize = isLarge ? "w-14 h-14" : "w-6 h-6";
+
+      if (isSuccess) {
+        return `
+          <div class="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-br from-[#FFFDFB] via-[#FDF2F5] to-[#F6EBD4] p-3">
+            <div class="absolute inset-[8%] rounded-[18px] border border-[#D4AF37]/50 pointer-events-none"></div>
+            <svg class="${iconSize} text-[#D4AF37] drop-shadow-[0_2px_10px_rgba(212,175,55,0.45)]" viewBox="0 0 64 64" fill="none">
+              <circle cx="32" cy="32" r="24" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3" opacity="0.7"/>
+              <path d="M32 10L36.8 25.2L52 30L36.8 34.8L32 50L27.2 34.8L12 30L27.2 25.2L32 10Z" fill="url(#goldSuccessGrad)" stroke="#C5A059" stroke-width="1"/>
+              <defs>
+                <linearGradient id="goldSuccessGrad" x1="12" y1="10" x2="52" y2="50" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#F6EBD4"/>
+                  <stop offset="0.5" stop-color="#D4AF37"/>
+                  <stop offset="1" stop-color="#B89042"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="mt-2 font-serif ${isLarge ? 'text-2xl' : 'text-[11px]'} tracking-[0.26em] text-[#C5A059]">${card.roman}</span>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-br from-[#FFFFFF] via-[#FDF2F5] to-[#F9E1E8] p-2">
+          <div class="absolute inset-[9%] rounded-[14px] border border-[#D4AF37]/45 pointer-events-none"></div>
+          <svg class="${isLarge ? 'w-8 h-8 mb-3' : 'w-3.5 h-3.5 mb-1'} text-[#D4AF37]/80" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+          </svg>
+          <span class="font-serif ${romanSize} leading-none tracking-[0.14em] text-[#C5A059] font-medium">${card.roman}</span>
+          <div class="flex items-center gap-1.5 ${isLarge ? 'mt-4' : 'mt-1.5'}">
+            <span class="h-[1px] ${isLarge ? 'w-7' : 'w-3'} bg-[#D4AF37]/50"></span>
+            <span class="w-1 h-1 rotate-45 bg-[#D4AF37]/70"></span>
+            <span class="h-[1px] ${isLarge ? 'w-7' : 'w-3'} bg-[#D4AF37]/50"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    /**
+     * Kép vagy fallback embléma DOM elem előállítása (szöveg és utalás nélkül)
+     */
+    function buildCardVisualElement(card, isLarge = false) {
+      const container = document.createElement("div");
+      container.className = "w-full h-full relative overflow-hidden";
+
+      const url = (CARD_IMAGES[card.id] || "").trim();
+
+      if (url) {
+        const img = document.createElement("img");
+        img.src = url;
+        img.alt = `Kártya ${card.roman}`;
+        img.className = "w-full h-full object-cover block select-none";
+        img.draggable = false;
+
+        img.onerror = () => {
+          container.innerHTML = createFallbackEmblem(card, isLarge);
+        };
+
+        container.appendChild(img);
+      } else {
+        container.innerHTML = createFallbackEmblem(card, isLarge);
+      }
+
+      return container;
+    }
+
+    /* =========================================================================
+       3x3 RÁCS RENDERELÉSE
+       ========================================================================= */
+    const cardGridEl = document.getElementById("cardGrid");
+    const progressTextEl = document.getElementById("progressText");
+
+    function renderGrid() {
+      cardGridEl.innerHTML = "";
+      const nextId = getNextUnlockableId();
+
+      progressTextEl.textContent = `${unlockedIds.length} / ${CARDS_DATA.length}`;
+
+      CARDS_DATA.forEach((card) => {
+        const isUnlocked = unlockedIds.includes(card.id);
+        const isNext = card.id === nextId;
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.setAttribute("aria-label", `Kártya ${card.roman}`);
+        btn.className = [
+          "card-tile aspect-square w-full rounded-[18px] gold-border focus:outline-none relative",
+          isUnlocked ? "unlocked-grid-card" : "card-back-grid",
+          isNext ? "next-unlockable" : ""
+        ].join(" ");
+
+        if (isUnlocked) {
+          // Feloldott kártya: csak a kép (vagy embléma), semmilyen szöveg vagy utalás
+          btn.appendChild(buildCardVisualElement(card, false));
+          btn.addEventListener("click", () => openShowcase(card, false));
+        } else {
+          // Lefordított (lezárt) kártya hátlap
+          btn.innerHTML = `
+            <div class="w-full h-full flex flex-col items-center justify-center gap-1.5 relative z-10">
+              <span class="font-serif text-[21px] leading-none tracking-[0.12em] text-gold-deep/90">${card.roman}</span>
+              ${
+                isNext
+                  ? `<svg class="w-3.5 h-3.5 text-gold" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                       <path d="M12 2l2.1 6.4L20.5 10.5l-6.4 2.1L12 19l-2.1-6.4L3.5 10.5l6.4-2.1L12 2z"/>
+                     </svg>`
+                  : `<svg class="w-3.5 h-3.5 text-gold-deep/55" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                       <rect x="5" y="11" width="14" height="10" rx="2.5" />
+                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+                     </svg>`
+              }
+            </div>
+          `;
+
+          btn.addEventListener("click", () => {
+            if (isNext) {
+              openUnlockModal(card);
+            } else {
+              showToast("Előbb oldd fel az előző kártyát!");
+            }
+          });
+        }
+
+        cardGridEl.appendChild(btn);
+      });
+    }
+
+    /* =========================================================================
+       TOAST ÉRTESÍTÉS
+       ========================================================================= */
+    const toastContainer = document.getElementById("toastContainer");
+    const toastMessage = document.getElementById("toastMessage");
+
+    function showToast(message) {
+      toastMessage.textContent = message;
+      toastContainer.classList.remove("opacity-0", "translate-y-3");
+      toastContainer.classList.add("opacity-100", "translate-y-0");
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastContainer.classList.remove("opacity-100", "translate-y-0");
+        toastContainer.classList.add("opacity-0", "translate-y-3");
+      }, 2400);
+    }
+
+    /* =========================================================================
+       VARÁZSSZÓ FELOLDÓ MODAL
+       ========================================================================= */
+    const unlockModal = document.getElementById("unlockModal");
+    const unlockModalPanel = document.getElementById("unlockModalPanel");
+    const unlockCardRoman = document.getElementById("unlockCardRoman");
+    const unlockForm = document.getElementById("unlockForm");
+    const magicWordInput = document.getElementById("magicWordInput");
+    const unlockError = document.getElementById("unlockError");
+    const closeUnlockBtn = document.getElementById("closeUnlockBtn");
+
+    function openUnlockModal(card) {
+      pendingUnlockCardId = card.id;
+      unlockCardRoman.textContent = card.roman;
+      magicWordInput.value = "";
+      unlockError.classList.add("opacity-0");
+
+      unlockModal.classList.remove("hidden");
+      unlockModal.classList.add("flex");
+
+      requestAnimationFrame(() => {
+        unlockModal.classList.remove("opacity-0");
+        unlockModalPanel.classList.remove("scale-95", "opacity-0");
+        unlockModalPanel.classList.add("scale-100", "opacity-100");
+        setTimeout(() => magicWordInput.focus(), 120);
+      });
+    }
+
+    function closeUnlockModal() {
+      unlockModal.classList.add("opacity-0");
+      unlockModalPanel.classList.remove("scale-100", "opacity-100");
+      unlockModalPanel.classList.add("scale-95", "opacity-0");
+
+      setTimeout(() => {
+        unlockModal.classList.add("hidden");
+        unlockModal.classList.remove("flex");
+        pendingUnlockCardId = null;
+      }, 280);
+    }
+
+    closeUnlockBtn.addEventListener("click", closeUnlockModal);
+    unlockModal.addEventListener("click", (e) => {
+      if (e.target === unlockModal) closeUnlockModal();
+    });
+
+    magicWordInput.addEventListener("input", () => {
+      unlockError.classList.add("opacity-0");
+    });
+
+    unlockForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!pendingUnlockCardId) return;
+
+      const card = CARDS_DATA.find((c) => c.id === pendingUnlockCardId);
+      if (!card) return;
+
+      const entered = normalizeWord(magicWordInput.value);
+      const expected = normalizeWord(card.unlockWord);
+
+      if (entered && entered === expected) {
+        // Sikeres feloldás!
+        if (!unlockedIds.includes(card.id)) {
+          unlockedIds.push(card.id);
+          unlockedIds.sort((a, b) => a - b);
+          saveProgress();
+        }
+
+        magicWordInput.blur();
+        closeUnlockModal();
+        renderGrid();
+
+        // Azonnali csillogó bemutató megnyitása
+        setTimeout(() => {
+          openShowcase(card, true);
+        }, 220);
+      } else {
+        // Hibás próbálkozás – végtelen találgatási lehetőség, finom rázkódás
+        unlockError.classList.remove("opacity-0");
+        unlockModalPanel.classList.remove("animate-shake");
+        void unlockModalPanel.offsetWidth; // Reflow a shake újraindításához
+        unlockModalPanel.classList.add("animate-shake");
+        magicWordInput.select();
+      }
+    });
+
+    /* =========================================================================
+       CSILLOGÓ KÁRTYA BEMUTATÓ (SPOTLIGHT SHOWCASE + 3D FLIP)
+       ========================================================================= */
+    const showcaseModal = document.getElementById("showcaseModal");
+    const showcaseCardWrapper = document.getElementById("showcaseCardWrapper");
+    const showcaseCard3D = document.getElementById("showcaseCard3D");
+    const showcaseFrontContent = document.getElementById("showcaseFrontContent");
+    const showcaseBackRoman = document.getElementById("showcaseBackRoman");
+    const showcaseBackQuote = document.getElementById("showcaseBackQuote");
+    const flipCardBtn = document.getElementById("flipCardBtn");
+    const closeShowcaseTopBtn = document.getElementById("closeShowcaseTopBtn");
+
+    function openShowcase(card, triggerBurst = false) {
+      // Mindig az előlappal indul
+      showcaseCard3D.classList.remove("is-flipped");
+
+      // Előlap tartalom (kizárólag a kép / embléma)
+      showcaseFrontContent.innerHTML = "";
+      showcaseFrontContent.appendChild(buildCardVisualElement(card, true));
+
+      // Hátlap egyedi idézet
+      showcaseBackRoman.textContent = card.roman;
+      showcaseBackQuote.textContent = card.quote;
+
+      showcaseModal.classList.remove("hidden");
+      showcaseModal.classList.add("flex");
+
+      requestAnimationFrame(() => {
+        showcaseModal.classList.remove("opacity-0");
+        showcaseCardWrapper.classList.remove("scale-90", "opacity-0");
+        showcaseCardWrapper.classList.add("scale-100", "opacity-100");
+      });
+
+      // Arany csillámrészecske robbanás (feloldáskor intenzívebb, újranyitáskor finomabb)
+      triggerSparkleBurst(triggerBurst ? (card.isSuccess ? 95 : 65) : 28);
+    }
+
+    function closeShowcase() {
+      showcaseModal.classList.add("opacity-0");
+      showcaseCardWrapper.classList.remove("scale-100", "opacity-100");
+      showcaseCardWrapper.classList.add("scale-90", "opacity-0");
+
+      setTimeout(() => {
+        showcaseModal.classList.add("hidden");
+        showcaseModal.classList.remove("flex");
+        showcaseCard3D.classList.remove("is-flipped");
+      }, 300);
+    }
+
+    function toggleCardFlip() {
+      showcaseCard3D.classList.toggle("is-flipped");
+    }
+
+    showcaseCard3D.addEventListener("click", toggleCardFlip);
+    flipCardBtn.addEventListener("click", toggleCardFlip);
+    closeShowcaseTopBtn.addEventListener("click", closeShowcase);
+    showcaseModal.addEventListener("click", (e) => {
+      if (e.target === showcaseModal) closeShowcase();
+    });
+
+    /* =========================================================================
+       ÚJRAKEZDÉS (RESET) MEGERŐSÍTŐ MODAL
+       ========================================================================= */
+    const openResetBtn = document.getElementById("openResetBtn");
+    const resetModal = document.getElementById("resetModal");
+    const resetModalPanel = document.getElementById("resetModalPanel");
+    const cancelResetBtn = document.getElementById("cancelResetBtn");
+    const confirmResetBtn = document.getElementById("confirmResetBtn");
+
+    function openResetModal() {
+      resetModal.classList.remove("hidden");
+      resetModal.classList.add("flex");
+      requestAnimationFrame(() => {
+        resetModal.classList.remove("opacity-0");
+        resetModalPanel.classList.remove("scale-95", "opacity-0");
+        resetModalPanel.classList.add("scale-100", "opacity-100");
+      });
+    }
+
+    function closeResetModal() {
+      resetModal.classList.add("opacity-0");
+      resetModalPanel.classList.remove("scale-100", "opacity-100");
+      resetModalPanel.classList.add("scale-95", "opacity-0");
+      setTimeout(() => {
+        resetModal.classList.add("hidden");
+        resetModal.classList.remove("flex");
+      }, 260);
+    }
+
+    openResetBtn.addEventListener("click", openResetModal);
+    cancelResetBtn.addEventListener("click", closeResetModal);
+    resetModal.addEventListener("click", (e) => {
+      if (e.target === resetModal) closeResetModal();
+    });
+
+    confirmResetBtn.addEventListener("click", () => {
+      unlockedIds = [1];
+      saveProgress();
+      renderGrid();
+      closeResetModal();
+      showToast("A kártyák visszaállítva.");
+    });
+
+    /* =========================================================================
+       HÁTTÉR ARANYPOR ÉS FELOLDÁSI CSILLÁM EFFEKTEK (HTML5 CANVAS)
+       ========================================================================= */
+    const ambientCanvas = document.getElementById("ambientCanvas");
+    const ambientCtx = ambientCanvas.getContext("2d");
+    const sparkleCanvas = document.getElementById("sparkleCanvas");
+    const sparkleCtx = sparkleCanvas.getContext("2d");
+
+    let ambientDust = [];
+    let burstParticles = [];
+    let burstAnimating = false;
+
+    function resizeCanvases() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      [ambientCanvas, sparkleCanvas].forEach((canvas) => {
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      });
+
+      initAmbientDust(w, h);
+    }
+
+    function initAmbientDust(w, h) {
+      const count = 26;
+      ambientDust = Array.from({ length: count }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.8 + 0.6,
+        vx: (Math.random() - 0.5) * 0.16,
+        vy: -(Math.random() * 0.22 + 0.06),
+        alpha: Math.random() * 0.45 + 0.12,
+        phase: Math.random() * Math.PI * 2
+      }));
+    }
+
+    function animateAmbientDust() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      ambientCtx.clearRect(0, 0, w, h);
+
+      for (const p of ambientDust) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.phase += 0.015;
+
+        if (p.y < -10) {
+          p.y = h + 10;
+          p.x = Math.random() * w;
+        }
+        if (p.x < -10) p.x = w + 10;
+        if (p.x > w + 10) p.x = -10;
+
+        const currentAlpha = p.alpha * (0.65 + 0.35 * Math.sin(p.phase));
+        ambientCtx.beginPath();
+        ambientCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ambientCtx.fillStyle = `rgba(212, 175, 55, ${currentAlpha.toFixed(3)})`;
+        ambientCtx.fill();
+      }
+
+      requestAnimationFrame(animateAmbientDust);
+    }
+
+    function drawFourPointStar(ctx, x, y, size, rotation, color, alpha) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rotation);
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -size);
+      ctx.quadraticCurveTo(0, 0, size, 0);
+      ctx.quadraticCurveTo(0, 0, 0, size);
+      ctx.quadraticCurveTo(0, 0, -size, 0);
+      ctx.quadraticCurveTo(0, 0, 0, -size);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function triggerSparkleBurst(count = 60) {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const colors = ["#D4AF37", "#E8CFA0", "#FFFDFB", "#F2C9D6", "#F6EBD4"];
+
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5.2 + 1.4;
+        burstParticles.push({
+          x: cx + (Math.random() - 0.5) * 60,
+          y: cy + (Math.random() - 0.5) * 60,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.8,
+          size: Math.random() * 6 + 2.5,
+          rotation: Math.random() * Math.PI,
+          vRot: (Math.random() - 0.5) * 0.12,
+          alpha: 1,
+          decay: Math.random() * 0.015 + 0.01,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          isStar: Math.random() > 0.35
+        });
+      }
+
+      if (!burstAnimating) {
+        burstAnimating = true;
+        animateSparkleBurst();
+      }
+    }
+
+    function animateSparkleBurst() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      sparkleCtx.clearRect(0, 0, w, h);
+
+      for (let i = burstParticles.length - 1; i >= 0; i--) {
+        const p = burstParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.975;
+        p.vy = p.vy * 0.975 + 0.04;
+        p.rotation += p.vRot;
+        p.alpha -= p.decay;
+
+        if (p.alpha <= 0) {
+          burstParticles.splice(i, 1);
+          continue;
+        }
+
+        if (p.isStar) {
+          drawFourPointStar(sparkleCtx, p.x, p.y, p.size, p.rotation, p.color, p.alpha);
+        } else {
+          sparkleCtx.save();
+          sparkleCtx.globalAlpha = p.alpha;
+          sparkleCtx.fillStyle = p.color;
+          sparkleCtx.beginPath();
+          sparkleCtx.arc(p.x, p.y, p.size * 0.35, 0, Math.PI * 2);
+          sparkleCtx.fill();
+          sparkleCtx.restore();
+        }
+      }
+
+      if (burstParticles.length > 0) {
+        requestAnimationFrame(animateSparkleBurst);
+      } else {
+        burstAnimating = false;
+        sparkleCtx.clearRect(0, 0, w, h);
+      }
+    }
+
+    /* =========================================================================
+       INICIALIZÁLÁS
+       ========================================================================= */
+    window.addEventListener("resize", resizeCanvases);
+    window.addEventListener("DOMContentLoaded", () => {
+      resizeCanvases();
+      animateAmbientDust();
+      renderGrid();
+    });
+  </script>
+</body>
+</html>
